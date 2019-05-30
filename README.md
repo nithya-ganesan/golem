@@ -1,71 +1,60 @@
-# Golem Integration Test Runner
+# Create Ubuntu Wordpress Server for Mercury Demo at HPE Discover
 
-The golem integration test runner is a flexible and robust way to run integration tests on top of Docker. It is designed for running tests which require complicated components such as proxies, databases, and docker. The test runner leverages docker's ability to run docker inside of a docker container and docker compose for orchestrating test components.
+### About  
+This module creates a complete LAMP stack, then installs and initializes WordPress.
+Once the deployment is finished, you need to go to
+http://fqdn.of.your.vm/wordpress/ to finish the configuration, create an account,
+and get started with WordPress.
+This module uses an existing virtual network, and uses an existing network interface.  
+This module also creates a public IP address for the VM.  
+ 
 
-### Key Features
-- Leverages docker compose for setting up a test
-- Runs each test inside its own test container for isolation
-- Customizable run configuration for testing development builds
-- Log capture of each test component for failure analysis
-- Parallel test execution and multi-configuration tests
+### Prerequisites  
+There must be a subscription containing: a resource group, a virtual network, a network interface.  
 
-### Planned Features
-- Ability to run on a swarm cluster for test scaling
-- Web UI for realtime test monitoring and log analysis
+### Parameters  
+The following mandatory parameters must be provided as command line arguments to the `deploy.sh` deployment script.  
+Optional parameters can also be provided for more configuration of the Wordpress server.  
 
-### Goals
-- Optimized for test driven development. Tests are able to leverage a cache to avoid rebuilding components during test setup.
-- Easily fit into CI workflow.
-- Handle complicated matrix testing.
+declare subscriptionId=""           # MANDATORY
+declare resourceGroupName=""        # MANDATORY
+declare deploymentName=""           # MANDATORY
+declare vmName=""                   # MANDATORY
+declare adminPasswordOrKey=""       # MANDATORY
+declare mySqlPassword=""            # MANDATORY
+declare vmSize=""                   # MANDATORY
+declare adminUsername=""            # OPTIONAL - (default: demoadmin)
+declare location=""                 # OPTIONAL - (default: resourcegroup().location)
+declare authenticationType=""       # OPTIONAL - (default: sshPublicKey)
+**Mandatory arguments:**  
 
-## Configuration
-Golem is configured through toml files (default named "golem.conf") in the directory containing a test suite.
-Each configuration file may specify multiple suite configuration.
+| Flag | Parameter name | Description | Type | Example value | Notes |  
+|------|----------------|-------------|------|---------------|-------|  
+| -a | subscriptionId | The ID of the subscription. | string | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |  |  
+| -b | resourceGroupName | Is the name of an existing resource group the VM and resources will be created in. | string | `Data` |  |  
+| -c | deploymentName | Is the name for this deployment. | string | `createVM` | Will be visible in the Azure Portal. |  
+| -d | vmName | The name of the virtual machine that will be created. | string | `ubuntuVM` |  |  
+| -e | adminPasswordOrKey | Admin password or key based on the authentication type. | secure string | `<password>` | This is a secure string and must be entered |  
+| -f | mySqlPassword | mysql password. | string | `<mysql_password>` |  |  
+| -g | vmSize | The size of the VM which will be created. | string | `Standard_D2s_v3` | See [Azure VM Sizes](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/sizes-general) for more VM sizes |  
+|
+**Optional arguments:**  
 
-### Configuration example
+| Flag | Parameter name | Description | Type | Available options | Default value | Example value | Notes |  
+|------|----------------|-------------|------|---------------|-------------------|---------------|-------|
+| -h | adminUsername | The username of the admin user. | string |  | `demoadmin` | `demoadmin` |  |  
+| -i | location | Location where the VM need to be created | string |  |`resourceGroup().location` | 'eastus' |  |  
+| -j | authenticationType | Type of authentication to the VM. | string | `sshPublicKey` or 'password' | 'sshPublicKey' | 'password|  |  
+  
 
-```
-[[suite]]
-  # name is used to set the name of this suite, if none is set here then the name
-  # should be set by the runner configuration or using the directory name
-  name = "registry"
+### Usage  
+Mandatory deployment script arguments:  
+`-a <subscriptionId> -b <resourceGroupName> -c <deploymentName> -d <vmName> -e <adminPasswordOrKey> -f <mySqlPassword> -g <vmSize>`  
 
-  # dind (or "Docker in Docker") is used to run a docker daemon inside the test container. This will
-  # always be set if docker compose is used.
-  dind=true
+With optional arguments:  
+`-a <subscriptionId> -b <resourceGroupName> -c <deploymentName> -d <vmName> -e <adminPasswordOrKey> -f <mySqlPassword> -g <vmSize> -h <adminUsername> -i <location> -j <authenticationType>`  
 
-  # images which should exist in the test container
-  # automatically set dind to true
-  images=[ "nginx:1.9", "golang:1.4", "hello-world:latest" ]
+e.g. To run this module individually, the command below must be run from the `deploy` directory:  
+`. ../modules/mercury-demo-server/deploy.sh -a <subscriptionId> -b <resourceGroupName> -c <deploymentName> -d <vmName> -e <adminPasswordOrKey> -f <mySqlPassword> -g <vmSize>`  
 
-  [[suite.pretest]]
-    command="/bin/sh ./install_certs.sh localregistry"
-
-  [[suite.testrunner]]
-    command="bats -t ."
-    format="tap"
-    env=["TEST_REPO=hello-world", "TEST_TAG=latest", "TEST_USER=testuser", "TEST_PASSWORD=passpassword", "TEST_REGISTRY=localregistry", "TEST_SKIP_PULL=true"]
-
-  # customimage allow runtime selection of an image inside the container
-  # automatically set dind to true
-  [[suite.customimage]]
-    # tag is the tag that will exist for the image inside the container
-    tag="golem-distribution:latest"
-    # default is the default image to use from docker instance which
-    # is building the golem test containers
-    default="registry:2.2.1"
-    # version is used to set an environment variable inside the running
-    # container which can be used to selectively run tests based on version.
-    # In this case the environment variable "GOLEM_DISTRIBUTION_VERSION" will
-    # be set to "2.2.1". The default value will either be a tag set on the
-    # source image for the tag, else the target image tag when the default has
-    # no tag.
-    version="2.2.1"
-  [[suite.customimage]]
-    tag="golem-registry:latest"
-    default="registry:0.9.1"
-
-```
-## Copyright and license
-
-Copyright © 2015-2016 Docker, Inc. All rights reserved, except as follows. Code is released under the Apache 2.0 license. The README.md file, and files in the "docs" folder are licensed under the Creative Commons Attribution 4.0 International License under the terms and conditions set forth in the file "LICENSE.docs". You may obtain a duplicate copy of the same license, titled CC-BY-SA-4.0, at http://creativecommons.org/licenses/by/4.0/.
+If mandatory parameters are not provided to the deployment script, it will check and ask for missing parameters to be entered.  
