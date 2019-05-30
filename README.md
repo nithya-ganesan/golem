@@ -44,7 +44,7 @@ declare authenticationType=""       # OPTIONAL - (default: sshPublicKey)
 |------|----------------|-------------|------|---------------|-------------------|---------------|-------|
 | -h | adminUsername | The username of the admin user. | string |  | `demoadmin` | `demoadmin` |  |  
 | -i | location | Location where the VM need to be created | string |  |`resourceGroup().location` | 'eastus' |  |  
-| -j | authenticationType | Type of authentication to the VM. | string | `sshPublicKey` or 'password' | 'sshPublicKey' | 'password|  |  
+| -j | authenticationType | Type of authentication to the VM. | string | `sshPublicKey` or `password` | `sshPublicKey` | `password`|  |  
   
 
 ### Usage  
